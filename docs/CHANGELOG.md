@@ -5,6 +5,8 @@ first public release; development before that is not part of this repository.
 
 ## [Unreleased]
 
+## v4.0.0 — 2026-11-19: AGPL-3.0-only
+
 - License: AGPL-3.0-only from this release on. The two earlier releases stay
   under FSL-1.1-ALv2 (see NOTICE, "Earlier releases").
 
