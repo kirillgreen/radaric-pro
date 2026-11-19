@@ -252,6 +252,8 @@ Provide your evaluation with a confidence score and reasoning.`
       model,
       schema: evaluationSchema,
       messages: buildCachedMessages(systemPrompt, userPrompt, modelId),
+      // The system prompt rides in `messages` so it can carry Anthropic cacheControl.
+      allowSystemInMessages: true,
       temperature: settings?.aiTemperature || 0.3,
       abortSignal: AbortSignal.timeout(AI_EVAL_TIMEOUT_MS),
       maxRetries: AI_EVAL_MAX_RETRIES,
@@ -738,6 +740,8 @@ export async function evaluateMaterialsBatch({
         model,
         schema: batchSchema,
         messages: buildCachedMessages(systemPrompt, userPrompt, modelId),
+        // The system prompt rides in `messages` so it can carry Anthropic cacheControl.
+        allowSystemInMessages: true,
         temperature: settings?.aiTemperature || 0.3,
         abortSignal: AbortSignal.timeout(AI_EVAL_TIMEOUT_MS),
         maxRetries: AI_EVAL_MAX_RETRIES,

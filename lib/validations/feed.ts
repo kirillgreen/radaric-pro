@@ -135,35 +135,41 @@ export function normalizeFeedUrlInput(input: string): string | null {
   return null
 }
 
-export const sourceSchema = z
-  .object({
-    // URL is required for RSS/TELEGRAM, optional for TWITTER/INTEREST (auto-generated)
-    url: z.string().url({ message: "Enter a valid URL" }).optional().or(z.literal("")),
-    type: z.enum(["RSS", "TELEGRAM", "TWITTER", "INTEREST", "EVENT_TRIGGER", "YOUTUBE"]),
-    name: z.string().min(1, { message: "Name is required" }),
-    coverUrl: z.string().url().optional().or(z.literal("")),
-    // RAD-369: capped server-side; the per-feed prompt feeds the evaluation prompt.
-    customPrompt: z
-      .string()
-      .max(USER_PROMPT_MAX, { message: `Custom prompt is too long (max ${USER_PROMPT_MAX} characters)` })
-      .optional(),
-    isActive: z.boolean(),
+const categoryListSchema = z.array(z.string().min(1).max(50).trim()).max(30)
 
-    // Twitter-specific fields
-    twitterType: twitterSourceTypeSchema.optional(),
-    twitterValue: z.string().optional(),
+// The bare object, without the cross-field refinements below. `updateSourceSchema`
+// is built from it: zod >= 4.6 refuses `.partial()` on a refined object, and
+// zod 4.1's `.partial()` dropped the refinements anyway, so a PATCH never ran them.
+const sourceObjectSchema = z.object({
+  // URL is required for RSS/TELEGRAM, optional for TWITTER/INTEREST (auto-generated)
+  url: z.string().url({ message: "Enter a valid URL" }).optional().or(z.literal("")),
+  type: z.enum(["RSS", "TELEGRAM", "TWITTER", "INTEREST", "EVENT_TRIGGER", "YOUTUBE"]),
+  name: z.string().min(1, { message: "Name is required" }),
+  coverUrl: z.string().url().optional().or(z.literal("")),
+  // RAD-369: capped server-side; the per-feed prompt feeds the evaluation prompt.
+  customPrompt: z
+    .string()
+    .max(USER_PROMPT_MAX, { message: `Custom prompt is too long (max ${USER_PROMPT_MAX} characters)` })
+    .optional(),
+  isActive: z.boolean(),
 
-    // Interest-specific fields (Parallel Monitor API)
-    interestQuery: z.string().optional(),
-    interestCadence: interestCadenceSchema.optional(),
+  // Twitter-specific fields
+  twitterType: twitterSourceTypeSchema.optional(),
+  twitterValue: z.string().optional(),
 
-    // Twitter-specific: include retweets (default: off)
-    includeRetweets: z.boolean().optional(),
+  // Interest-specific fields (Parallel Monitor API)
+  interestQuery: z.string().optional(),
+  interestCadence: interestCadenceSchema.optional(),
 
-    // Content category preferences
-    likedCategories: z.array(z.string().min(1).max(50).trim()).max(30).default([]),
-    dislikedCategories: z.array(z.string().min(1).max(50).trim()).max(30).default([]),
-  })
+  // Twitter-specific: include retweets (default: off)
+  includeRetweets: z.boolean().optional(),
+
+  // Content category preferences
+  likedCategories: categoryListSchema.default([]),
+  dislikedCategories: categoryListSchema.default([]),
+})
+
+export const sourceSchema = sourceObjectSchema
   .refine(
     (data) => {
       // URL required for RSS, TELEGRAM, and YOUTUBE
@@ -249,6 +255,11 @@ export type SourceFormData = z.infer<typeof sourceSchema>
 
 export const createSourceSchema = sourceSchema
 
-export const updateSourceSchema = sourceSchema.partial().extend({
+// No defaults on a PATCH: a field the request did not send stays undefined, so
+// the route leaves its column alone. A defaulted [] here erased a feed's
+// categories every time the feed card paused or resumed it.
+export const updateSourceSchema = sourceObjectSchema.partial().extend({
   id: z.string(),
+  likedCategories: categoryListSchema.optional(),
+  dislikedCategories: categoryListSchema.optional(),
 })

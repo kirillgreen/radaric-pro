@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs"
+import { stripSpanQueryStrings } from "@/lib/sentry-span-scrub"
 
 export async function register() {
   // RAD-285: the AUTH_USER / AUTH_PASSWORD_HASH virtual-admin fallback was
@@ -22,6 +23,33 @@ export async function register() {
       dsn: process.env.SENTRY_DSN,
       tracesSampleRate: 0.1,
       enabled: process.env.NODE_ENV === "production",
+      // Sentry 11 collects user info, cookies, headers, request bodies, query
+      // strings, DB query data and AI prompts by default. Auth routes carry
+      // passwords in bodies and reset tokens in URLs, and the privacy policy
+      // does not name Sentry, so collect none of it: errors keep their message,
+      // stack and code context only. (stackFrameVariables is belt and braces:
+      // the local-variables integration is off unless explicitly enabled.)
+      dataCollection: {
+        userInfo: false,
+        cookies: false,
+        httpHeaders: false,
+        httpBodies: [],
+        urlQueryParams: false,
+        graphQL: { document: false, variables: false },
+        genAI: { inputs: false, outputs: false },
+        mcp: { inputs: false, outputs: false },
+        databaseQueryData: false,
+        queues: false,
+        stackFrameVariables: false,
+        frameContextLines: 7,
+      },
+      // v10 behaviour: no synthetic stack on captureMessage, so existing issue
+      // groups stay stable.
+      attachStacktrace: false,
+      // urlQueryParams above does not reach Next's raw `http.target` span
+      // attribute, which would carry `/reset-password?token=…` on sampled
+      // requests.
+      beforeSendSpan: stripSpanQueryStrings,
     })
   }
 }

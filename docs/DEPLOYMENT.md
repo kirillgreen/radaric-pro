@@ -65,8 +65,10 @@ Platform settings to mirror:
 | Stop grace period / drain | ≥ 15 s |
 | Restart policy | on failure |
 
-`railway.toml` in the repository is one working example: health check
-`/api/health` with a 120 s timeout, restart on failure, `drainingSeconds = 30`.
+The hosted radaric.pro service runs with: health check `/api/health` with a
+120 s timeout, restart on failure (at most 5 retries), 30 s draining between
+SIGTERM and SIGKILL, and the image built from the root `Dockerfile` with its own
+`CMD` (no start-command override, so `scripts/start.sh` stays PID 1).
 
 Run a **single replica**. The worker takes a PostgreSQL advisory lock so only
 one worker may hold the Telegram session; additional replicas wait for the lock
@@ -208,8 +210,7 @@ returns:
 `sha` and `deploymentId` are populated from Railway's runtime environment and
 are `null` elsewhere. The route answers `500` with `status: "error"` when the
 database is unreachable — which is exactly when knowing the answering build
-matters. Use it as the platform health check (the repository's `railway.toml`
-does).
+matters. Use it as the platform health check (radaric.pro does).
 
 ### Worker — `GET /health` on `WORKER_HEALTH_PORT` (default 3001)
 

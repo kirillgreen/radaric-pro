@@ -100,7 +100,25 @@ describe("PATCH /api/feeds/[id] — categories", () => {
     )
   })
 
-  it("defaults to empty arrays when categories not provided", async () => {
+  it("leaves the categories alone when a PATCH does not send them (pause/resume)", async () => {
+    // The feed card's pause toggle sends only isActive + status. Writing a
+    // defaulted [] here erased the feed's liked and disliked categories.
+    setupAuth()
+    setupSource()
+
+    const req = new NextRequest(`http://localhost/api/feeds/${MOCK_SOURCE_ID}`, {
+      method: "PATCH",
+      body: JSON.stringify({ isActive: false, status: "PAUSED" }),
+    })
+
+    const res = await PATCH(req, { params })
+    expect(res.status).toBe(200)
+    const data = vi.mocked(db.feed.updateMany).mock.calls[0][0].data as Record<string, unknown>
+    expect(data.likedCategories).toBeUndefined()
+    expect(data.dislikedCategories).toBeUndefined()
+  })
+
+  it("clears the categories when a PATCH sends empty lists", async () => {
     setupAuth()
     setupSource()
 
@@ -112,6 +130,8 @@ describe("PATCH /api/feeds/[id] — categories", () => {
         type: "RSS",
         url: "https://example.com/feed",
         isActive: true,
+        likedCategories: [],
+        dislikedCategories: [],
       }),
     })
 

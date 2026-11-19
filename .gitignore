@@ -44,8 +44,9 @@ blob_urls_backup.txt
 # vercel
 .vercel
 
-# railway
-.railway
+# railway — the CLI's local link state stays out; the IaC authoring file is tracked (RAD-445)
+.railway/*
+!.railway/railway.ts
 
 # typescript
 *.tsbuildinfo
