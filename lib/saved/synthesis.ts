@@ -2,7 +2,8 @@ import { generateObject } from "ai"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { createModel } from "@/lib/ai"
-import { resolveModelForStage, buildProviderOptions } from "@/lib/models/registry"
+import { buildProviderOptions } from "@/lib/models/registry"
+import { resolveRuntimeModelForStage } from "@/lib/models/runtime"
 import { isHtml } from "@/lib/html-utils"
 import { stripHtml } from "@/lib/sanitize"
 
@@ -104,10 +105,10 @@ export async function regenerateSynthesis(userId: string, collectionId: string):
   const settings = s
     ? { id: s.id, aiModel: s.aiModel ?? "", aiApiKey: s.aiApiKey ?? "", aiTemperature: s.aiTemperature ?? 0.3 }
     : null
-  // synthesisModel is this stage's own setting; null falls back to STAGE_DEFAULTS.synthesis.
+  // synthesisModel is this stage's own setting; null follows the stage default.
   // It used to borrow Settings.aiModel — the FILTERING model, tuned for throughput
   // on hundreds of short items a day, which is the wrong tier for this job.
-  const modelId = resolveModelForStage("synthesis", s?.synthesisModel)
+  const modelId = resolveRuntimeModelForStage("synthesis", s?.synthesisModel)
   const model = await createModel(settings, { modelId })
   const providerOptions = buildProviderOptions(modelId)
 

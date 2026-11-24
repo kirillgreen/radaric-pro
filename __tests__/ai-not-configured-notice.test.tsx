@@ -25,6 +25,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.stubEnv("ANTHROPIC_API_KEY", "")
   vi.stubEnv("OPENROUTER_API_KEY", "")
+  vi.stubEnv("OPENAI_COMPATIBLE_MODEL", "")
+  vi.stubEnv("OPENAI_COMPATIBLE_BASE_URL", "")
   vi.mocked(db.settings.findFirst).mockResolvedValue({ aiModel: null, aiApiKey: null } as never)
   vi.mocked(auth).mockResolvedValue({ user: { id: "u1", role: "ADMIN" } } as never)
 })
@@ -58,6 +60,14 @@ describe("AiNotConfiguredNotice", () => {
 
   it("renders nothing for a direct-Anthropic filtering model with a Settings key", async () => {
     vi.mocked(db.settings.findFirst).mockResolvedValue({ aiModel: "claude-sonnet-5", aiApiKey: "sk-ant-global" } as never)
+    expect(renderToStaticMarkup(await AiNotConfiguredNotice())).toBe("")
+  })
+
+  it("checks the custom filtering default rather than requiring an OpenRouter key", async () => {
+    vi.stubEnv("OPENAI_COMPATIBLE_MODEL", "custom-model")
+    expect(renderToStaticMarkup(await AiNotConfiguredNotice())).toContain("OPENAI_COMPATIBLE_BASE_URL")
+
+    vi.stubEnv("OPENAI_COMPATIBLE_BASE_URL", "https://gateway.example.com/v1")
     expect(renderToStaticMarkup(await AiNotConfiguredNotice())).toBe("")
   })
 

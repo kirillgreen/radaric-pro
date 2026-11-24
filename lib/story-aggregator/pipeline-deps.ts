@@ -12,7 +12,8 @@ import { extractContentFromUrl, extractContentFromText } from "./content-extract
 import { matchItem as matchItemFn, type StoryMatcherDeps } from "./story-matcher"
 import { findRelatedMaterials, type ArchiveLinkerDeps } from "./archive-linker"
 import { replaceNotionPageContent } from "./notion-page-update"
-import { resolveModelForStage, requiresAnthropicKey, buildProviderOptions } from "@/lib/models/registry"
+import { requiresAnthropicKey, buildProviderOptions } from "@/lib/models/registry"
+import { resolveRuntimeModelForStage } from "@/lib/models/runtime"
 import { storyOverridesFor, type SettingsShaper, type StorySettingsRow } from "./story-entitlement"
 import { createModelInstance } from "@/lib/models/provider"
 import {
@@ -107,8 +108,8 @@ export async function buildPipelineDeps(
   // resolved models actually use. This used to throw on a missing Anthropic key
   // even when both stages had been moved to OpenRouter slugs, which made every
   // story run hostage to a key it no longer touched.
-  const writerModel = resolveModelForStage("storyWriter", overrides.model(userSettings?.storyWriterModel))
-  const matcherModel = resolveModelForStage("storyMatcher", overrides.model(userSettings?.storyMatcherModel))
+  const writerModel = resolveRuntimeModelForStage("storyWriter", overrides.model(userSettings?.storyWriterModel))
+  const matcherModel = resolveRuntimeModelForStage("storyMatcher", overrides.model(userSettings?.storyMatcherModel))
 
   const anthropicApiKey = settings?.aiApiKey || process.env.ANTHROPIC_API_KEY
   if (!anthropicApiKey && [writerModel, matcherModel].some(requiresAnthropicKey)) {
@@ -243,7 +244,7 @@ export async function buildMaterialStoryDeps(userId: string): Promise<MaterialPi
     db.user.findUnique({ where: { id: userId }, select: { role: true } }),
   ])
   const overrides = storyOverridesFor(user?.role)
-  const materialModel = resolveModelForStage(
+  const materialModel = resolveRuntimeModelForStage(
     "materialStory",
     overrides.model(userSettings?.materialStoryModel)
   )

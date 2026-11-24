@@ -2,8 +2,9 @@ import { generateObject } from "ai"
 import { z } from "zod"
 import type { ExtractedFeed } from "@/lib/onboarding-types"
 import { resolveBrandUrl } from "@/lib/feed-flavor"
-import { resolveModelForStage, buildProviderOptions } from "@/lib/models/registry"
+import { buildProviderOptions } from "@/lib/models/registry"
 import { createModelInstance } from "@/lib/models/provider"
+import { getMissingModelSetting, resolveRuntimeModelForStage } from "@/lib/models/runtime"
 
 /**
  * Wall-clock cap for the one extraction call.
@@ -76,10 +77,8 @@ export function resolveStatus(feed: ExtractedFeed): ExtractedFeed {
 }
 
 export async function extractFeedsWithLLM(text: string): Promise<ExtractedFeed[]> {
-  const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey) return extractFeedsFromLines(text)
-
-  const modelId = resolveModelForStage("extraction")
+  const modelId = resolveRuntimeModelForStage("extraction")
+  if (getMissingModelSetting(modelId)) return extractFeedsFromLines(text)
   const providerOptions = buildProviderOptions(modelId)
 
   try {

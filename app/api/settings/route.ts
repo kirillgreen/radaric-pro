@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireAdmin, isErrorResponse } from "@/lib/auth-utils"
-import {
-  STAGE_DEFAULTS,
-  sanitizeModelId,
-  sanitizeReasoningEffort,
-} from "@/lib/models/registry"
+import { sanitizeModelId, sanitizeReasoningEffort } from "@/lib/models/registry"
 
 // GET /api/settings - Get global settings (admin only)
 export async function GET() {
@@ -19,7 +15,7 @@ export async function GET() {
     if (!settings) {
       settings = await db.settings.create({
         data: {
-          aiModel: STAGE_DEFAULTS.filtering,
+          aiModel: null,
           aiTemperature: 0.7,
           telegramApiId: null,
           telegramApiHash: null,
@@ -62,12 +58,14 @@ export async function PUT(request: Request) {
         where: { id: existingSettings.id },
         data: {
           // AI settings
-          aiModel: body.aiModel,
           aiTemperature: body.aiTemperature,
           aiApiKey: body.aiApiKey,
           // Per-stage overrides. Absent key = leave alone (Prisma ignores
           // undefined); explicit null or an unlisted id = clear the override and
-          // fall back to the stage default in lib/models/registry.ts.
+          // fall back to the stage default.
+          ...(body.aiModel !== undefined && {
+            aiModel: sanitizeModelId(body.aiModel),
+          }),
           ...(body.synthesisModel !== undefined && {
             synthesisModel: sanitizeModelId(body.synthesisModel),
           }),
@@ -90,7 +88,7 @@ export async function PUT(request: Request) {
     } else {
       settings = await db.settings.create({
         data: {
-          aiModel: body.aiModel || STAGE_DEFAULTS.filtering,
+          aiModel: sanitizeModelId(body.aiModel),
           aiTemperature: body.aiTemperature || 0.7,
           aiApiKey: body.aiApiKey,
           synthesisModel: sanitizeModelId(body.synthesisModel),

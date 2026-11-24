@@ -64,15 +64,11 @@ Open <http://localhost:3000>. **The first account you create becomes the
 administrator automatically** — there is no separate bootstrap step (and no
 `AUTH_USER` env var; it was removed).
 
-Now add an AI key **before your first feed** — `OPENROUTER_API_KEY` is the
-zero-config choice, because every stage defaults to an OpenRouter model. With an
-Anthropic-only key, also point filtering, synthesis, discovery and the two
-Telegram stages (story writer and deduplication) at a Claude model in
-**Settings → AI Settings**; material grouping stays on OpenRouter (see
-[AI keys](#ai-keys)). A parse of a feed runs evaluation before insert, so
-without a usable key it ends in ERROR and stores nothing. With the key set and
-the stack restarted, the dashboard's "AI filtering is not configured" banner
-disappears — that is the acceptance check.
+Configure AI **before your first feed** — `OPENROUTER_API_KEY` is the quickest
+option, or use a [custom gateway](#custom-openai-compatible-gateway). See
+[AI keys](#ai-keys) for Anthropic-only installs. A parse of a feed runs
+evaluation before insert, so without a usable model it ends in ERROR and stores
+nothing.
 
 The compose file defaults `SELF_HOSTED=true` (every tier gate unlocked for every
 account, and email verification disabled — no mail transport by design) and
@@ -161,7 +157,7 @@ reach) — nothing on 3001 should be reachable from the internet.
 | `TOKEN_ENC_KEY` | seals saved Notion tokens at rest — `openssl rand -hex 32`; needed to save one ([docs/SECURITY.md](docs/SECURITY.md)) |
 | `NEXT_PUBLIC_APP_URL` | webhook + email links; **required** in production (must be set explicitly) |
 | `NEXTAUTH_URL` | recommended only; fallback for reset links / OAuth callbacks |
-| one AI key | see below |
+| AI provider configuration | see below |
 
 Everything else is optional and documented in [`.env.example`](.env.example),
 which is grouped REQUIRED / OPTIONAL / NOT-ENV and verified against the code.
@@ -174,8 +170,8 @@ are read per request, so a change needs no rebuild.
 
 ## AI keys
 
-Every stage defaults to a model routed through **OpenRouter** (filtering,
-synthesis, discovery, the Telegram story writer and material grouping), so:
+Without a custom gateway model, every stage defaults to a model routed
+through **OpenRouter**, so:
 
 - **`OPENROUTER_API_KEY`** — the zero-config choice; works for every default
   model.
@@ -186,16 +182,43 @@ synthesis, discovery, the Telegram story writer and material grouping), so:
   **Settings → AI Settings**.
   Material grouping ("Group Stories") is OpenRouter-only, and onboarding feed
   extraction has no picker, so those two still need `OPENROUTER_API_KEY`. The
-  dashboard banner tells you which key the selected model needs.
+  dashboard banner names missing configuration for the filtering model.
 
 Usage caps (`ROUTING_USER_DAILY_CAP`, `SELF_FILLING_CAP`, rate limits, …) stay
 in force in self-hosted mode — they are spend guards, not plan limits.
+
+### Custom OpenAI-compatible gateway
+
+Set these in the runtime environment (`.env` for the Compose install), then
+recreate the app container so both the web app and worker pick them up:
+
+```dotenv
+OPENAI_COMPATIBLE_BASE_URL=https://gateway.example.com/v1
+OPENAI_COMPATIBLE_MODEL=vendor/model-id
+OPENAI_COMPATIBLE_API_KEY=
+```
+
+Use the base URL, not the full endpoint path. Radaric appends `/chat/completions`.
+Use the exact model ID the gateway expects. The API key is sent as a bearer token;
+leave it empty for a gateway that does not require authentication. Use a gateway
+you trust with feed and prompt contents; the OpenRouter data-collection policy
+does not apply to custom gateways.
+
+Setting `OPENAI_COMPATIBLE_MODEL` replaces the default for all seven AI stages,
+including onboarding feed extraction and material grouping. Existing explicit
+model selections are preserved. On an existing install, select **Default** for
+any stages you want to move to the gateway in **Settings → AI Settings**.
+You don't need an OpenRouter or Anthropic key for stages using the gateway.
+
+The model and gateway must accept `response_format: { "type": "json_schema", … }`
+on Chat Completions. A Responses-only endpoint is not supported. This setting
+does not change the separate embeddings used by the optional archive integration.
 
 ## Feature → key map
 
 | Feature | Needs | Without it |
 |---|---|---|
-| AI filtering / synthesis / discovery | one AI key — OpenRouter for the defaults, or an Anthropic key plus the filtering/synthesis/discovery and Telegram story stages switched in Settings → AI Settings (material grouping stays on OpenRouter) | a feed parse reports ERROR and stores nothing; banner explains |
+| AI filtering / synthesis / discovery | a [custom gateway](#custom-openai-compatible-gateway), OpenRouter key for the built-in defaults, or Anthropic key with Claude selected in Settings → AI Settings | a feed parse reports ERROR and stores nothing; banner explains |
 | RSS / YouTube / web pages | nothing | — |
 | Behance galleries when Behance bot-checks your server | nothing (`JINA_API_KEY` optional, raises the reader's 20 req/min limit) | Behance posts keep only the feed cover |
 | Telegram channels + Story Aggregator | Telegram api id/hash/session in **Settings → Telegram** (admin) **and** a story inbox channel on an admin account (**Settings → Stories**) | the worker builds no Telegram client; Telegram sources fail with "GramJS client not available" |

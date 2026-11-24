@@ -65,14 +65,13 @@ OPTIONAL and is kept in sync with the code):
   transaction-mode pooler)
 - `NEXTAUTH_SECRET` — signing key (`openssl rand -hex 32`)
 - `NEXT_PUBLIC_APP_URL` — the public URL of your instance
-- One AI key: `OPENROUTER_API_KEY` (every stage defaults to an OpenRouter
-  model) or `ANTHROPIC_API_KEY` — with the Anthropic key alone, also switch
-  filtering, synthesis, discovery and the two Telegram stages (story writer,
-  deduplication) in **Settings → AI Settings** (material grouping stays on
-  OpenRouter)
+- AI configuration: `OPENROUTER_API_KEY` for the built-in defaults, a
+  [custom OpenAI-compatible gateway](SELF_HOSTING.md#custom-openai-compatible-gateway),
+  or `ANTHROPIC_API_KEY` with Claude models selected in **Settings → AI Settings**
+  (see [AI keys](SELF_HOSTING.md#ai-keys) for which stages can use Anthropic)
 
-Add the AI key before your first feed: a feed parse runs evaluation before
-insert, so without a usable key it ends in ERROR and stores nothing.
+Configure AI before your first feed: a feed parse runs evaluation before
+insert, so without a usable model it ends in ERROR and stores nothing.
 
 `NEXTAUTH_URL` is recommended but not required — a fallback base for reset links
 and OAuth callbacks. On a non-Docker install behind a proxy, leave it unset so

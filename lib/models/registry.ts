@@ -122,20 +122,21 @@ export function getModelOption(modelId: string): ModelOption | undefined {
   return MODELS_BY_ID.get(modelId)
 }
 
-/**
- * True when the id routes through OpenRouter rather than the Anthropic API.
- *
- * The slash is not cosmetic: it decides WHICH CREDENTIAL is used. A bare
- * "claude-sonnet-5" goes direct-Anthropic on settings.aiApiKey;
- * "anthropic/claude-sonnet-5" is the same model billed through OPENROUTER_API_KEY.
- */
-export function isOpenRouterModel(modelId: string): boolean {
-  return modelId.includes("/")
+export const OPENAI_COMPATIBLE_PREFIX = "openai-compatible/"
+
+/** Gateway defaults carry an explicit prefix; built-in IDs keep their existing routing. */
+export function getModelProvider(modelId: string): "openai-compatible" | "openrouter" | "anthropic" {
+  if (modelId.startsWith(OPENAI_COMPATIBLE_PREFIX)) return "openai-compatible"
+  return modelId.includes("/") ? "openrouter" : "anthropic"
 }
 
-/** Direct-Anthropic ids need settings.aiApiKey; OpenRouter ids do not. */
+export function isOpenRouterModel(modelId: string): boolean {
+  return getModelProvider(modelId) === "openrouter"
+}
+
+/** Only direct-Anthropic ids can use the key stored in Settings. */
 export function requiresAnthropicKey(modelId: string): boolean {
-  return !isOpenRouterModel(modelId)
+  return getModelProvider(modelId) === "anthropic"
 }
 
 // ---------------------------------------------------------------------------
@@ -222,14 +223,18 @@ export function sanitizeReasoningEffort(value: unknown): string | null {
  * so the UI can tell the user their choice is gone instead of silently swapping
  * it underneath them.
  */
-export function resolveModelForStage(stage: ModelStage, override?: string | null): string {
+export function resolveModelForStage(
+  stage: ModelStage,
+  override?: string | null,
+  defaultModel: string = STAGE_DEFAULTS[stage]
+): string {
   const value = normalize(override)
-  if (value === null) return STAGE_DEFAULTS[stage]
+  if (value === null) return defaultModel
   if (isKnownModel(value)) return value
   console.warn(
-    `[ModelRegistry] ${stage} override "${value}" is no longer an offered model — falling back to ${STAGE_DEFAULTS[stage]}`
+    `[ModelRegistry] ${stage} override "${value}" is no longer an offered model — falling back to ${defaultModel}`
   )
-  return STAGE_DEFAULTS[stage]
+  return defaultModel
 }
 
 // ---------------------------------------------------------------------------

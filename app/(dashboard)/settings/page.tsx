@@ -3,7 +3,7 @@ import { SettingsForm } from "@/components/settings/settings-form"
 import { db } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { STAGE_DEFAULTS } from "@/lib/models/registry"
+import { getOpenAICompatibleModelName } from "@/lib/models/runtime"
 
 export const metadata: Metadata = { title: "Settings" }
 export const dynamic = 'force-dynamic'
@@ -115,7 +115,7 @@ export default async function SettingsPage() {
     parallelWebhookSecret: globalSettings.parallelWebhookSecret,
   } : {
     aiApiKey: null,
-    aiModel: STAGE_DEFAULTS.filtering,
+    aiModel: null,
     aiTemperature: 0.7,
     synthesisModel: null,
     discoveryModel: null,
@@ -139,6 +139,7 @@ export default async function SettingsPage() {
       initialBlacklist={blacklist}
       initialFeedback={feedback}
       isAdmin={isAdmin}
+      gatewayModelName={isAdmin ? getOpenAICompatibleModelName() : undefined}
       account={account}
     />
   )

@@ -45,12 +45,6 @@ import {
 // ---------------------------------------------------------------------------
 // Model pickers
 //
-// Four selects used to render the same two model lists inline with hand-written
-// "Default (…)" placeholders, and those placeholders went stale the moment the
-// defaults moved: the material-grouping picker still promised "Gemini 2.5 Flash"
-// long after that model was retired, and the story-writer one still claimed to
-// inherit the content-filtering model after that link was severed. Derive the
-// label from STAGE_DEFAULTS instead, so a default change cannot lie here again.
 // ---------------------------------------------------------------------------
 
 const NO_OVERRIDE = "__default__"
@@ -58,11 +52,6 @@ const NO_OVERRIDE = "__default__"
 /** "GLM-5.3 Flash" for an id we offer, the raw id for one we no longer do. */
 function labelForModel(modelId: string): string {
   return getModelOption(modelId)?.label ?? modelId
-}
-
-/** "Default (GLM-5.3 Flash)" — what this stage runs when nothing is chosen. */
-function defaultLabelForStage(stage: ModelStage): string {
-  return `Default (${labelForModel(STAGE_DEFAULTS[stage])})`
 }
 
 /** "AAI 41.9 · $0.07 / $0.25 per 1M" — enough to choose on, when we have it. */
@@ -96,38 +85,33 @@ function ModelSelectItems({ models }: { models: ModelOption[] }) {
 /**
  * A stage's model picker.
  *
- * `stage` drives the "Default (…)" row, so the control cannot drift from the
- * registry. A null value means "no override" — the column stays empty and the
- * stage follows STAGE_DEFAULTS, which is what lets a default change take effect
- * without rewriting anybody's saved settings.
+ * A null value follows the installation's default instead of pinning a model.
  */
 function StageModelSelect({
   id,
-  stage,
+  defaultModelLabel,
   value,
   onChange,
-  openRouterOnly = false,
-  allowDefault = true,
+  includeAnthropic = true,
 }: {
   id: string
-  stage: ModelStage
+  defaultModelLabel: string
   value: string | null
   onChange: (value: string | null) => void
-  openRouterOnly?: boolean
-  allowDefault?: boolean
+  includeAnthropic?: boolean
 }) {
-  const defaultLabel = defaultLabelForStage(stage)
+  const defaultLabel = `Default (${defaultModelLabel})`
   return (
     <Select
-      value={allowDefault ? (value ?? NO_OVERRIDE) : (value ?? undefined)}
+      value={value ?? NO_OVERRIDE}
       onValueChange={(next) => onChange(next === NO_OVERRIDE ? null : next)}
     >
       <SelectTrigger id={id}>
-        <SelectValue placeholder={allowDefault ? defaultLabel : "Select model"} />
+        <SelectValue placeholder={defaultLabel} />
       </SelectTrigger>
       <SelectContent>
-        {allowDefault && <SelectItem value={NO_OVERRIDE}>{defaultLabel}</SelectItem>}
-        {!openRouterOnly && <ModelSelectItems models={ANTHROPIC_MODELS} />}
+        <SelectItem value={NO_OVERRIDE}>{defaultLabel}</SelectItem>
+        {includeAnthropic && <ModelSelectItems models={ANTHROPIC_MODELS} />}
         <ModelSelectItems models={OPENROUTER_MODELS} />
       </SelectContent>
     </Select>
@@ -190,6 +174,7 @@ interface SettingsFormProps {
   initialBlacklist: BlacklistItem[]
   initialFeedback: AIFeedback[]
   isAdmin?: boolean
+  gatewayModelName?: string
   account: {
     email: string | null
     username: string | null
@@ -240,8 +225,11 @@ export function SettingsForm({
   initialBlacklist,
   initialFeedback,
   isAdmin = false,
+  gatewayModelName,
   account,
 }: SettingsFormProps) {
+  const defaultModelLabel = (stage: ModelStage) =>
+    gatewayModelName ? `${gatewayModelName} (via custom gateway)` : labelForModel(STAGE_DEFAULTS[stage])
   const router = useRouter()
   const [settings, setSettings] = useState<Settings>(initialSettings)
   const [emailValue, setEmailValue] = useState(account.email ?? "")
@@ -377,7 +365,7 @@ export function SettingsForm({
     const validated = { ...initialSettings }
     if (validated.aiModel && !allModelIds.has(validated.aiModel)) {
       console.warn(`[Settings] Invalid aiModel "${validated.aiModel}", resetting to default`)
-      validated.aiModel = STAGE_DEFAULTS.filtering
+      validated.aiModel = null
     }
     setSettings(validated)
   }, [initialSettings])
@@ -845,7 +833,7 @@ export function SettingsForm({
                     <Label htmlFor="aiModel">Content filtering model</Label>
                     <StageModelSelect
                       id="aiModel"
-                      stage="filtering"
+                      defaultModelLabel={defaultModelLabel("filtering")}
                       value={settings.aiModel}
                       onChange={(value) => setSettings({ ...settings, aiModel: value })}
                     />
@@ -912,10 +900,10 @@ export function SettingsForm({
                     <Label htmlFor="materialStoryModel">Material grouping model</Label>
                     <StageModelSelect
                       id="materialStoryModel"
-                      stage="materialStory"
+                      defaultModelLabel={defaultModelLabel("materialStory")}
                       value={settings.materialStoryModel}
                       onChange={(value) => setSettings({ ...settings, materialStoryModel: value })}
-                      openRouterOnly
+                      includeAnthropic={false}
                     />
                     <p className="text-xs text-muted-foreground">
                       Used by &quot;Group Stories&quot; — matches and writes stories from feed materials.
@@ -926,7 +914,7 @@ export function SettingsForm({
                     <Label htmlFor="storyWriterModel">Telegram inbox story writer</Label>
                     <StageModelSelect
                       id="storyWriterModel"
-                      stage="storyWriter"
+                      defaultModelLabel={defaultModelLabel("storyWriter")}
                       value={settings.storyWriterModel}
                       onChange={(value) => setSettings({ ...settings, storyWriterModel: value })}
                     />
@@ -940,7 +928,7 @@ export function SettingsForm({
                     <Label htmlFor="storyMatcherModel">Telegram inbox deduplication</Label>
                     <StageModelSelect
                       id="storyMatcherModel"
-                      stage="storyMatcher"
+                      defaultModelLabel={defaultModelLabel("storyMatcher")}
                       value={settings.storyMatcherModel}
                       onChange={(value) => setSettings({ ...settings, storyMatcherModel: value })}
                     />
@@ -953,7 +941,7 @@ export function SettingsForm({
                     <Label htmlFor="synthesisModel">Library synthesis model</Label>
                     <StageModelSelect
                       id="synthesisModel"
-                      stage="synthesis"
+                      defaultModelLabel={defaultModelLabel("synthesis")}
                       value={settings.synthesisModel}
                       onChange={(value) => setSettings({ ...settings, synthesisModel: value })}
                     />
@@ -967,7 +955,7 @@ export function SettingsForm({
                     <Label htmlFor="discoveryModel">Source discovery model</Label>
                     <StageModelSelect
                       id="discoveryModel"
-                      stage="discovery"
+                      defaultModelLabel={defaultModelLabel("discovery")}
                       value={settings.discoveryModel}
                       onChange={(value) => setSettings({ ...settings, discoveryModel: value })}
                     />
