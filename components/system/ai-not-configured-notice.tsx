@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { TriangleAlert } from "lucide-react"
 import { auth } from "@/lib/auth"
-import { getAiConfigStatus } from "@/lib/ai-config"
+import { getMissingFilteringModelSetting } from "@/lib/ai-config"
 
 /**
  * RAD-293: "AI provider not configured" banner. Without this, a fresh install
@@ -16,8 +16,8 @@ export async function AiNotConfiguredNotice() {
   const session = await auth()
   if (!session?.user?.id) return null
 
-  const status = await getAiConfigStatus()
-  if (status.configured) return null
+  const missingSetting = await getMissingFilteringModelSetting()
+  if (!missingSetting) return null
 
   const isAdmin = session.user.role === "ADMIN"
   return (
@@ -30,7 +30,7 @@ export async function AiNotConfiguredNotice() {
         {isAdmin ? (
           <>
             AI filtering is not configured — set{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{status.requiredKey}</code> in the
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{missingSetting}</code> in the
             environment, or pick a Claude model for filtering and add an Anthropic key in{" "}
             {/* The banner sits on --secondary, where --primary falls below AA —
                 so the link wears link-on-tint (the sanctioned zone remap). */}
@@ -43,7 +43,7 @@ export async function AiNotConfiguredNotice() {
             .
           </>
         ) : (
-          <>AI filtering is not configured — ask your instance administrator to add an AI key.</>
+          <>AI filtering is not configured — ask your instance administrator to check the AI settings.</>
         )}
       </p>
     </div>

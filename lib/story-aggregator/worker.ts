@@ -39,7 +39,8 @@ import { channelInfo, parseChannelResponse } from "./telegram-proxy"
 import { maybeDeleteTelegramMessage, sweepUndeletedTelegramMessages } from "./telegram-deleter"
 import { previewImageUrl } from "@/lib/media-urls"
 import { openNotionToken } from "@/lib/notion-token"
-import { resolveModelForStage, requiresAnthropicKey, buildProviderOptions } from "@/lib/models/registry"
+import { requiresAnthropicKey, buildProviderOptions } from "@/lib/models/registry"
+import { resolveRuntimeModelForStage } from "@/lib/models/runtime"
 import { storyOverridesFor, type StorySettingsRow } from "./story-entitlement"
 import { createModelInstance } from "@/lib/models/provider"
 import {
@@ -132,8 +133,8 @@ async function buildPipelineDeps(userId: string): Promise<PipelineDeps> {
   // Resolve FIRST, then demand a credential — and only the credential the
   // resolved models actually use. The worker used to throw on a missing
   // Anthropic key before it knew which models it was about to run.
-  const writerModel = resolveModelForStage("storyWriter", overrides.model(userSettings?.storyWriterModel))
-  const matcherModel = resolveModelForStage("storyMatcher", overrides.model(userSettings?.storyMatcherModel))
+  const writerModel = resolveRuntimeModelForStage("storyWriter", overrides.model(userSettings?.storyWriterModel))
+  const matcherModel = resolveRuntimeModelForStage("storyMatcher", overrides.model(userSettings?.storyMatcherModel))
 
   const anthropicApiKey = settings?.aiApiKey || process.env.ANTHROPIC_API_KEY
   if (!anthropicApiKey && [writerModel, matcherModel].some(requiresAnthropicKey)) {

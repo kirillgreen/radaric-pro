@@ -3,8 +3,8 @@ import { z } from "zod"
 import Parser from "rss-parser"
 import { db } from "@/lib/db"
 import { createModel } from "@/lib/ai"
-import { resolveModelForStage, buildProviderOptions } from "@/lib/models/registry"
-import { isModelConfigured } from "@/lib/ai-config"
+import { buildProviderOptions } from "@/lib/models/registry"
+import { getMissingModelSetting, resolveRuntimeModelForStage } from "@/lib/models/runtime"
 import { detectRSSFeed } from "@/lib/parsers/rss"
 import { safeFetch } from "@/lib/url-validation"
 
@@ -89,13 +89,13 @@ export async function discoverSourcesForTopic(query: string, userId: string): Pr
   const settings = s
     ? { id: s.id, aiModel: s.aiModel ?? "", aiApiKey: s.aiApiKey ?? "", aiTemperature: s.aiTemperature ?? 0.3 }
     : null
-  // discoveryModel is this stage's own setting; null falls back to STAGE_DEFAULTS.discovery.
+  // discoveryModel is this stage's own setting; null follows the stage default.
   // It used to borrow Settings.aiModel — the FILTERING model, tuned for throughput
   // on hundreds of short items a day, which is the wrong tier for this job.
-  const modelId = resolveModelForStage("discovery", s?.discoveryModel)
+  const modelId = resolveRuntimeModelForStage("discovery", s?.discoveryModel)
   // Model-aware: the resolved discovery model needs ITS provider's credential
   // (RAD-293 — the same predicate the first-run banner uses, so they can't drift).
-  if (!isModelConfigured(modelId, s?.aiApiKey)) {
+  if (getMissingModelSetting(modelId, s?.aiApiKey)) {
     throw new AiNotConfiguredError()
   }
   const model = await createModel(settings, { modelId })

@@ -15,12 +15,13 @@
 // ---------------------------------------------------------------------------
 
 import type { LanguageModel } from "ai"
-import { isOpenRouterModel } from "./registry"
+import { getModelProvider, OPENAI_COMPATIBLE_PREFIX } from "./registry"
+import { getOpenAICompatibleBaseURL } from "./runtime"
 
 export interface CreateModelOptions {
   /**
    * Direct-Anthropic credential (Settings.aiApiKey). Consulted only for
-   * non-OpenRouter ids; ANTHROPIC_API_KEY is the fallback.
+   * direct-Anthropic ids; ANTHROPIC_API_KEY is the fallback.
    */
   anthropicApiKey?: string | null
 }
@@ -34,7 +35,22 @@ export async function createModelInstance(
   modelId: string,
   options: CreateModelOptions = {}
 ): Promise<LanguageModel> {
-  if (isOpenRouterModel(modelId)) {
+  const provider = getModelProvider(modelId)
+  if (provider === "openai-compatible") {
+    const baseURL = getOpenAICompatibleBaseURL()
+    if (!baseURL) {
+      throw new Error("OPENAI_COMPATIBLE_BASE_URL must be an HTTP(S) base URL without credentials, query, or fragment")
+    }
+    const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible")
+    return createOpenAICompatible({
+      name: provider,
+      baseURL,
+      apiKey: process.env.OPENAI_COMPATIBLE_API_KEY?.trim() || undefined,
+      supportsStructuredOutputs: true,
+    }).chatModel(modelId.slice(OPENAI_COMPATIBLE_PREFIX.length))
+  }
+
+  if (provider === "openrouter") {
     const apiKey = process.env.OPENROUTER_API_KEY
     if (!apiKey) {
       throw new Error(

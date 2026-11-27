@@ -2,11 +2,12 @@ import { generateObject } from "ai"
 import { z } from "zod"
 import { db } from "./db"
 import {
-  resolveModelForStage,
   resolveReasoningEffort,
   buildProviderOptions,
-  isOpenRouterModel,
+  getModelProvider,
+  requiresAnthropicKey,
 } from "@/lib/models/registry"
+import { resolveRuntimeModelForStage } from "@/lib/models/runtime"
 import { createModelInstance } from "@/lib/models/provider"
 import { USER_PROMPT_MAX } from "@/lib/validations/prompt-limits"
 
@@ -295,7 +296,7 @@ export async function evaluateMaterial({
  * discoveryModel) and pass an explicit `modelId` to createModel().
  */
 export function resolveModelId(settings: EvaluationContext["settings"]): string {
-  return resolveModelForStage("filtering", settings?.aiModel)
+  return resolveRuntimeModelForStage("filtering", settings?.aiModel)
 }
 
 /**
@@ -312,7 +313,7 @@ export async function createModel(
   const modelId = options.modelId ?? resolveModelId(settings)
 
   console.log(
-    `[AI Eval] Using model="${modelId}" provider=${isOpenRouterModel(modelId) ? "openrouter" : "anthropic"}`
+    `[AI Eval] Using model="${modelId}" provider=${getModelProvider(modelId)}`
   )
 
   return createModelInstance(modelId, { anthropicApiKey: settings?.aiApiKey })
@@ -320,14 +321,13 @@ export async function createModel(
 
 /**
  * Build messages array with Anthropic prompt caching on the system message.
- * For non-Anthropic models (OpenRouter), cacheControl is ignored by the provider.
  *
  * Takes the RESOLVED id, not the settings row: the resolver can fall back past a
  * retired override, and a stale second read of settings.aiModel here would decide
  * cache control for a model the request is not actually going to.
  */
 function buildCachedMessages(systemPrompt: string, userPrompt: string, modelId: string) {
-  const isAnthropic = !isOpenRouterModel(modelId)
+  const isAnthropic = requiresAnthropicKey(modelId)
 
   const systemMessage = {
     role: "system" as const,
