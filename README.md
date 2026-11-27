@@ -107,7 +107,7 @@ docker compose up -d --build
 | `public/` | Static assets served as-is |
 | `__tests__/` · `e2e/` | Vitest unit and integration tests · Playwright end-to-end tests |
 | `docs/` | Architecture, features, API and setup guides |
-| `.github/` | Contributing guide, security policy, CLA draft, CI workflows |
+| `.github/` | Contributing guide, security policy, CLA, CI workflows |
 | `proxy.ts` · `instrumentation.ts` | Request middleware (auth gate, redirects) · server-side Sentry and boot-time checks |
 
 The remaining root files are the tool configs (Next.js, TypeScript, PostCSS,

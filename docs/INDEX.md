@@ -56,4 +56,4 @@
 |---|---|
 | [LICENSE](../LICENSE) | AGPL-3.0-only |
 | [NOTICE](../NOTICE) | Copyright, the earlier releases and their license, the brand terms, third-party notices |
-| [CLA.md](../.github/CLA.md) | Contributor License Agreement (draft — signing not open yet) |
+| [CLA.md](../.github/CLA.md) | Contributor License Agreement v1.0 — signed with a PR comment |

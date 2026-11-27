@@ -10,11 +10,9 @@ must arrive with the right to do so: that is what the CLA grants.
 
 - **Bugs and ideas:** open an issue. Clear reproduction steps — or better, a
   failing test — are the fastest path to a fix.
-- **Pull requests:** open an issue first and describe the change. Signing
-  [CLA.md](CLA.md) is not open yet: the draft is published so you can read what
-  you would agree to, and **PRs are not merged until the final version is
-  published** and a signed CLA is in place. A PR may sit until then — that is
-  not disinterest.
+- **Pull requests:** open an issue first and describe the change. Before a PR
+  can be merged, sign [CLA.md](CLA.md) v1.0 with a comment on the PR (the CLA
+  says how).
 
 ## Development
 
