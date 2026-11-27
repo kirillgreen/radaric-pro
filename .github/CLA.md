@@ -1,10 +1,8 @@
-# Contributor License Agreement (draft)
+# Contributor License Agreement
 
-> **Status: draft — not yet in force.** PRs are not being merged until this
-> agreement (and the process around it) is finalised by the maintainer. It is
-> published here so a prospective contributor can read what they would sign.
+**Version 1.0, 2026-11-27.**
 
-Thank you for your interest in contributing to Radaric. This agreement will let
+Thank you for your interest in contributing to Radaric. This agreement lets
 the maintainer, Kirill Oleinichenko, distribute contributions under the
 project's license (AGPL-3.0-only) and also offer Radaric commercially,
 including the paid hosted service and commercial licenses. You keep the
@@ -42,6 +40,19 @@ writing), You accept the following terms for any contribution You submit.
 6. **No warranty.** Contributions are provided "as is", without warranties of
    any kind, to the extent permitted by law.
 
-**Signing is not open yet.** Please do not sign this draft: the final version
-will be published with a version number before pull requests are accepted.
-Until then, open an issue to discuss a change.
+## How to sign
+
+Post this comment on your pull request, from the GitHub account that authored
+the commits:
+
+> I have read the Radaric CLA v1.0 and I agree to it.
+
+If you contribute as part of your job, or your employer may hold rights in what
+you write, add a second line confirming that your employer permits the
+contribution on these terms:
+
+> My employer, <company name>, permits this contribution under the CLA v1.0.
+
+One signature covers every later contribution you make under this version. If
+the agreement changes, the new version gets a new number and applies only to
+contributions made after you sign it.
